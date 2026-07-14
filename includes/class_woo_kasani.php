@@ -46,7 +46,7 @@ class Class_Woo_Kasani
   {
     $this->loader->add_action('wp_footer', $this->frontend, 'change_background_color');
     $this->loader->add_filter('custom_wlwl_stop_position', $this->frontend, 'win_new_user_a_cupon', 10, 3);
-    $this->loader->add_filter('wlwl_add_message_of_success_design', $this->frontend, 'add_message_of_success_design', 10);
+    $this->loader->add_filter('woo_lucky_wheel_get_email_response', $this->frontend, 'update_response_win_lucky_wheel', 10, 4);
     $this->loader->add_filter('woocommerce_product_is_on_sale', $this->frontend, 'mi_producto_es_oferta_flash', 10, 2);
   }
 

@@ -13,41 +13,69 @@ class Frontend
     ]);
 
     $spin_meta = get_post_meta(
-        $exists[0],
-        'wlwl_spin_times',
-        true
+      $exists[0],
+      'wlwl_spin_times',
+      true
     );
 
-    if ((int) $spin_meta['spin_num'] !== 1 ) {
+    $key = 'wk_new_user_' . md5(strtolower($email));
+
+    if ((int) $spin_meta['spin_num'] !== 1) {
+      set_transient(
+        $key,
+        true,
+        MINUTE_IN_SECONDS
+      );
       return $stop;
     }
 
     $index = array_search(30, $wheel['coupon_amount']);
+    delete_transient($key);
 
     return $index;
   }
 
-  public function change_background_color() {
+  public function update_response_win_lucky_wheel($data, $email)
+  {
+    $key = 'wk_new_user_' . md5(strtolower($email));
+
+    if((bool) get_transient($key)) {
+      return $data;
+    }
+
+    $message = get_option('message_to_roulette_winners', '');
+    $color_actual = get_option('mi_color_guardado', '#0073aa');
+
+    $data['is_new_user'] = [ 
+      'message' => $message,
+      'color' => $color_actual
+    ];
+
+    delete_transient($key);
+
+    return $data;
+  }
+
+  public function change_background_color()
+  {
     $backgroud_color = get_option('mi_color_guardado', '');
-    if($backgroud_color === '') {
+    if ($backgroud_color === '') {
       return;
     }
 
     ?>
-      <style>
+    <style>
       .wlwl_lucky_wheel_content.success {
-        background-color: <?php echo sanitize_hex_color($backgroud_color); ?>;
+        background-color:
+          <?php echo sanitize_hex_color($backgroud_color); ?>
+        ;
       }
-      </style>
+    </style>
     <?php
   }
 
-  public function add_message_of_success_design() {
-    $template = get_option('message_to_roulette_winners', '');
-    return apply_filters( 'the_content', $template);
-  }
-
-  public function mi_producto_es_oferta_flash($on_sale, $product) {
+  public function mi_producto_es_oferta_flash($on_sale, $product)
+  {
 
   }
 

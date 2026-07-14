@@ -12,7 +12,7 @@ class CPTS
 			[
 				'plural' => 'Promotions',
 				'singular' => 'Promotion',
-				'menu_name' => 'Promotions By Community',
+				'menu_name' => 'Flash Sale',
 				'description' => 'Post Type Promotions',
 				'icon' => 'dashicons-tickets',
 				'hierarchical' => false,

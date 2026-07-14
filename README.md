@@ -18,21 +18,24 @@ Por:
   );
 ```
 
-También se tiene que añadir un nuevo filtro de Wordpress para que puedan agregasé los diseños que uno quiera desde el plugin Woo Kasani, nos vamos al archivo "C:\Users\ASUS\Herd\wordpress-2\wp-content\plugins\woocommerce-lucky-wheel\frontend\frontend.php" y estando en la línea 1576 añadimos lo siguiente.
+en la línea 238 del archivo woocommerce-lucky-wheel.js tienes que ingresar el argumento 'is_new_user' que viene en la 'response' :
 
 ```
-  $result_notification .= apply_filters( 
-    'wlwl_add_message_of_success_design', 
-    $name,
-    $email,
-    $wheel_label,
-    $email_coupons_code
-  );     
+  spins_wheel(response.stop_position, response.result_notification, response.result, response?.is_new_user);
 ```
 
-en la línea 289 del archivo woocommerce-lucky-wheel.js tienes que ingresar lo siguiente:
+en la línea 285 del archivo woocommerce-lucky-wheel.js tienes que ingresar el parametro 'is_new_user' con el valor por defecto de 'null' :
 
 ```
-  let container = $('.wlwl_lucky_wheel_content');
-  container.addClass('success');
+  function spins_wheel(stop_position, result_notification, result, is_new_user = null)
+```
+
+en la línea 370 del archivo woocommerce-lucky-wheel.js tienes que ingresar lo siguiente:
+
+```
+if(is_new_user) {
+    let container = $('.wlwl_lucky_wheel_content');
+    container.addClass('success');
+    $('.wheel-content-wrapper .wheel_content_right .wlwl_user_lucky > .wlwl-frontend-result').html(is_new_user?.message).fadeIn(300);
+}
 ```
