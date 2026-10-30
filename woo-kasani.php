@@ -3,7 +3,8 @@
  * Plugin Name: Woo Kasani
  * Author: Luis Saravia
  * Description: Woo Kasani is a plugin what allows you do customize your Woocommerce store and others plugins, wanted for Kasani S.A.
- * Version: 1.0.0
+ * Version: 1.0.1
+ * Text Domain: woo-kasani
  */
 
 

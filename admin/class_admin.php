@@ -11,15 +11,18 @@ class Admin
 {
   public $custom_win_lucky;
 
-  public function __construct() {
+  public function __construct()
+  {
     $this->custom_win_lucky = new CustomWinLucky();
   }
 
-  public function add_menu() {
+  public function add_menu()
+  {
     $this->custom_win_lucky->add_menu();
   }
 
-  public function on_dependence($hook) {
+  public function on_dependence($hook)
+  {
     $this->custom_win_lucky->cargar_scripts_color_picker($hook);
   }
 
@@ -99,7 +102,7 @@ class Admin
   {
     $offers = PromotionControllers::get_promotions_active(['fields' => 'ids']);
 
-    if (empty($offers->have_posts())) {
+    if (empty($offers->posts)) {
       return [];
     }
 
@@ -109,6 +112,10 @@ class Admin
     $flash_sale_discount = get_post_meta($id, '_discount_quantity', true);
     $type_discount = get_post_meta($id, '_select_type_discount', true);
     $products_flash_sale = json_decode($products_flash_sale_json);
+
+    if (!is_array($products_flash_sale)) {
+      $products_flash_sale = [];
+    }
 
     return [
       'discount' => $flash_sale_discount,
@@ -126,9 +133,20 @@ class Admin
       update_option('data_of_promotion_active', $data);
     }
 
+    $data = is_string($data)
+      ? json_decode($data, true)
+      : $data;
+
+    $data = is_array($data)
+      ? $data
+      : [];
+
     return $data;
   }
 
+  /**************************************/
+  /****** MODIFICADORES DE PRECIOS ******/
+  /**************************************/
   public function woo_kasani_apply_promotion_discount($price, $product)
   {
     // Solo en frontend (no en admin ni en REST)
@@ -149,13 +167,12 @@ class Admin
     }
 
     // Obtener precio regular
+    // $regular_price = (float) $product->get_regular_price();
     $regular_price = (float) $product->get_regular_price();
+
     if ($regular_price <= 0) {
       return $price;
     }
-
-    // Calcular nuevo precio con descuento
-    $new_price = $regular_price * (1 - $data['discount'] / 100);
 
     switch ($data['type_discount']) {
       case 'fixed_product':
@@ -169,6 +186,17 @@ class Admin
     }
 
     return round($new_price, 2);
+  }
+
+  public function woo_kasani_get_price($price, $product)
+  {
+    $sale_price = $product->get_sale_price();
+
+    if ($sale_price !== '') {
+      return $sale_price;
+    }
+
+    return $price;
   }
 
   public function woo_kasani_set_product_on_sale($on_sale, $product)
@@ -210,6 +238,7 @@ class Admin
     if (is_admin() && !wp_doing_ajax()) {
       return $html;
     }
+    error_log(__METHOD__);
 
     $data = $this->get_data_of_promotion_active();
     if (empty($data['products'])) {
@@ -220,10 +249,13 @@ class Admin
 
     if (in_array($product->get_id(), $ids)) {
       // Reemplazar el badge por completo
+      // return '<span class="flash-sale-badge">Flash Sale</span>';
       return '<span class="onsale flash-sale-badge">Flash Sale</span>';
     }
 
-    return '<span class="onsale flash-sale-badge">Flash Sale</span>';
+    // return $html;
+    return $html . '<span class="flash-sale-badge">Flash Sale</span>';
+    ;
   }
 
   public function woo_kasani_custom_sale_flash_block_edit($text, $product)
@@ -235,67 +267,125 @@ class Admin
     $data = $this->get_data_of_promotion_active();
 
     if (empty($data['products'])) {
-        return $text;
+      return $text;
     }
 
     $ids = wp_list_pluck($data['products'], 'id');
 
     if (in_array($product->get_id(), $ids, true)) {
-        return 'Flash Sale';
+      return 'Flash Sale';
     }
 
     return $text;
   }
 
-  public function admin_drop_sale_price_for_promotions()
+
+
+  /*****************************************/
+  /***** ACTUALIZADOR POR FINALIZACIÓN *****/
+  /*****************************************/
+  public function add_flash_warning_and_timer()
   {
-    $data = PromotionControllers::get_promotion_meta();
+    // Buscar la oferta flash activa más próxima a terminar (la que tiene la fecha fin más cercana)
+    $offers = PromotionControllers::get_promotions_active(['fields' => 'ids']);
 
-    if (empty($data)) {
+    if (empty($offers->have_posts()))
       return;
-    }
 
-    $id = $data[0]->post_id;
-    $products_of_promotion = [];
-    $promotion_end_time = '';
+    $offer = $offers->posts[0];
 
-    foreach ($data as $row) {
-      switch ($row->meta_key) {
-        case '_products_selected':
-          $products_of_promotion = $row->meta_value;
-          break;
-        case '_promotion_end_time':
-          $promotion_end_time = $row->meta_value;
-          break;
-      }
-    }
+    $start_date = get_post_meta($offer, '_promotion_start_time', true);
+    $end_date = get_post_meta($offer, '_promotion_end_time', true);
+    $image_url = get_the_post_thumbnail_url($offer, 'medium');
 
-    // if ($promotion_end_time < current_time('timestamp')) {
-    //   if (empty($products_of_promotion)) {
-    //     $products_of_promotion = [];
-    //   }
+    $timestamp_start = $start_date;
+    $timestamp_end = $end_date;
+    ?>
+	<span class="close-flash-warning">&times;</span>
+    <div onclick="location.href='https://kasani.pe/producto/langostino-jumbo-2/'" class="flash-warning-container">
+      <div class="message-flash-warning">
+        <!-- <span>
+          ¡Aprovecha nuestra ofertas flash!
+        </span> -->
+        <img 
+          src="<?= $image_url; ?>"
+          alt="flash-sale-image"
+        />
+      </div>
 
-    //   $products_of_promotion = json_decode($products_of_promotion);
+      <div id="flash-countdown" data-start="<?php echo esc_attr($timestamp_start); ?>"
+        data-end="<?php echo esc_attr($timestamp_end); ?>">
+        <span class="days">00</span><span style="font-size:16px; color:#EFEFEF;">d</span>
+        <span class="hours">00</span><span style="font-size:16px; color:#111111;">h</span>
+        <span class="minutes">00</span><span style="font-size:16px; color:#111111;">m</span>
+        <span class="seconds">00</span><span style="font-size:16px; color:#111111;">s</span>
+      </div>
+    </div>
 
-    //   $ids = wp_list_pluck($data['products'], 'id');
-
-    //   $products = wc_get_products(['include' => $ids]);
-
-    //   if (empty($products)) {
-    //     return;
-    //   }
-
-    //   foreach ($products as $product) {
-    //     // Eliminar el precio de oferta
-    //     $product->set_sale_price(null);
-    //     $product->set_price($product->get_regular_price());
-    //     $product->save();
-    //   }
-
-    //   update_post_meta($id, '_promotion_active', 'no');
-    // }
+    <?php
+    // Encolar el script del contador SOLO si hay oferta activa
+    add_action('wp_footer', [$this, 'promotion_script_contador']);
   }
 
+  public function promotion_script_contador()
+  {
+    // Para evitar encolarlo múltiples veces, usamos un flag
+    if (did_action('mi_contador_encolado'))
+      return;
+    do_action('mi_contador_encolado');
+
+    ?>
+    <script>
+      document.addEventListener('DOMContentLoaded', function () {
+        const container = document.getElementById('flash-countdown');
+        if (!container) return;
+
+        const startTimestamp = parseInt(container.dataset.start) * 1000; // a milisegundos
+        const endTimestamp = parseInt(container.dataset.end) * 1000; // a milisegundos
+
+        const intervalPromoCount = setInterval(updateCountdown, 1000);
+
+        function updateCountdown() {
+          const now = new Date().getTime();
+          let distance = endTimestamp - now;
+
+          if (now < startTimestamp) {
+            container.innerHTML = '';
+            return;
+          } else if (startTimestamp <= now && now < endTimestamp) {
+            container.innerHTML = `
+                <span class="days">00</span><span style="font-size:16px; color:#fff;">d</span>
+                <span class="hours">00</span><span style="font-size:16px; color:#fff;">h</span>
+                <span class="minutes">00</span><span style="font-size:16px; color:#fff;">m</span>
+                <span class="seconds">00</span><span style="font-size:16px; color:#fff;">s</span>
+              `;
+
+            const changeEvent = new CustomEvent('flash_sale_countdown_change');
+            container.dispatchEvent(changeEvent);
+
+          } else if (endTimestamp < now) {
+            container.innerHTML = '🔥 ¡OFERTA TERMINADA!';
+            clearInterval(intervalPromoCount);
+            return;
+          }
+
+          const days = Math.floor(distance / (1000 * 60 * 60 * 24));
+          const hours = Math.floor((distance % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60));
+          const minutes = Math.floor((distance % (1000 * 60 * 60)) / (1000 * 60));
+          const seconds = Math.floor((distance % (1000 * 60)) / 1000);
+
+          container.querySelector(`.days`).textContent = String(days).padStart(2, '0');
+          container.querySelector(`.hours`).textContent = String(hours).padStart(2, '0');
+          container.querySelector(`.minutes`).textContent = String(minutes).padStart(2, '0');
+          container.querySelector(`.seconds`).textContent = String(seconds).padStart(2, '0');
+        }
+      });
+    </script>
+    <?php
+  }
+  /*****************************************/
+  /***** ACTUALIZADOR POR FINALIZACIÓN *****/
+  /*****************************************/
   public function frontend_drop_sale_price_for_promotions()
   {
     if (
@@ -329,24 +419,21 @@ class Admin
       }
     }
 
-    // var_dump('<pre>');
-    // var_dump('timestamp');
-    // var_dump(current_time('timestamp'));
-    // var_dump('<pre>');
+    $products_of_promotion = json_decode(
+      $products_of_promotion,
+      true
+    );
 
-    // var_dump('<pre>');
-    // var_dump('promotion_end_time');
-    // var_dump($promotion_end_time);
-    // var_dump('<pre>');
+    if (!is_array($products_of_promotion)) {
+      $products_of_promotion = [];
+    }
 
-    // wp_die();
-
-    if ($promotion_end_time < current_time('timestamp')) {
+    if ((int) $promotion_end_time < current_time('timestamp')) {
       if (empty($products_of_promotion)) {
         $products_of_promotion = [];
       }
 
-      $ids = wp_list_pluck($data['products'], 'id');
+      $ids = wp_list_pluck($products_of_promotion, 'id');
 
       $products = wc_get_products(['include' => $ids]);
 

@@ -46,8 +46,7 @@ class Class_Woo_Kasani
   {
     $this->loader->add_action('wp_footer', $this->frontend, 'change_background_color');
     $this->loader->add_filter('custom_wlwl_stop_position', $this->frontend, 'win_new_user_a_cupon', 10, 3);
-    $this->loader->add_filter('woo_lucky_wheel_get_email_response', $this->frontend, 'update_response_win_lucky_wheel', 10, 4);
-    $this->loader->add_filter('woocommerce_product_is_on_sale', $this->frontend, 'mi_producto_es_oferta_flash', 10, 2);
+    $this->loader->add_filter('woo_lucky_wheel_get_email_response', $this->frontend, 'update_response_win_lucky_wheel', 10, 5);
   }
 
   public function load_fns_admin() {
@@ -59,22 +58,35 @@ class Class_Woo_Kasani
     $this->loader->add_filter('manage_promotions_posts_columns', $admin, 'add_toggle_btn_to_promotions_columns', 10, 1);
     $this->loader->add_filter('manage_promotions_posts_custom_column', $admin, 'display_column_promotion', 10, 2);
     $this->loader->add_filter('wp_ajax_toggle_promotion', $admin, 'ajax_toggle_promotion', 10);
-
-    $this->loader->add_filter('woocommerce_product_get_price', $admin, 'woo_kasani_apply_promotion_discount', 10, 2);
+    
+    /*************************************************************/
+    /*************** Modificadores de precios ********************/
+    /*************************************************************/
     $this->loader->add_filter('woocommerce_product_get_sale_price', $admin, 'woo_kasani_apply_promotion_discount', 10, 2);
-    $this->loader->add_filter('woocommerce_product_variation_get_price', $admin, 'woo_kasani_apply_promotion_discount', 10, 2);
     $this->loader->add_filter('woocommerce_product_variation_get_sale_price', $admin, 'woo_kasani_apply_promotion_discount', 10, 2);
+
+    $this->loader->add_filter('woocommerce_product_get_price', $admin, 'woo_kasani_get_price', 10, 2);
+    $this->loader->add_filter('woocommerce_product_variation_get_price', $admin, 'woo_kasani_get_price', 10, 2);
+
 
     $this->loader->add_filter('woocommerce_product_is_on_sale', $admin, 'woo_kasani_set_product_on_sale', 10, 2);
     $this->loader->add_filter('woocommerce_product_variation_is_on_sale', $admin, 'woo_kasani_set_product_on_sale', 10, 2);
 
-    $this->loader->add_filter('woocommerce_sale_flash', $admin, 'woo_kasani_custom_sale_flash', 10, 3);
-    $this->loader->add_filter('woocommerce_sale_badge_text', $admin, 'woo_kasani_custom_sale_flash_block_edit', 10, 2);
 
-    $this->loader->add_action('save_post_promotions', $this->admin, 'admin_drop_sale_price_for_promotions', 10, 1);
+    $this->loader->add_filter('woocommerce_sale_flash', $admin, 'woo_kasani_custom_sale_flash', 999, 3);
+    
+    
+    $this->loader->add_filter('woocommerce_sale_badge_text', $admin, 'woo_kasani_custom_sale_flash_block_edit', 999, 2);
 
+    /***********************************************************************************/
+    /*************** Eliminar el Flash Sale de productos caducados  ********************/
+    /***********************************************************************************/
     $this->loader->add_action('wp_ajax_deactivate_flash_promotion_nonce', $admin, 'frontend_drop_sale_price_for_promotions');
     $this->loader->add_action('wp_ajax_nopriv_deactivate_flash_promotion_nonce', $admin, 'frontend_drop_sale_price_for_promotions');
+
+	  
+    $this->loader->add_action('wp_footer', $admin, 'add_flash_warning_and_timer', 25);
+    $this->loader->add_action('wp_footer', $admin, 'promotion_script_contador', 25);
   }
 
   public function load_dependencies_frontend()
@@ -128,10 +140,10 @@ class Class_Woo_Kasani
     $loader->add_action('save_post_promotions', $meta_boxes, 'save_promotion_duration_metabox', 10, 2);
     
     $loader->add_action('admin_notices', $meta_boxes, 'display_error_flash_sale');
-    $loader->add_action('woocommerce_before_shop_loop', $meta_boxes, 'add_flash_warning_and_timer', 5);
+    // $loader->add_action('woocommerce_before_shop_loop', $meta_boxes, 'add_flash_warning_and_timer', 25);
 
     /**** SAVE DEFAULT VALUE OF META KEY PROMOTION ACTIVE ****/
-    $loader->add_action('save_post_promotions', $meta_boxes, 'save_post_default_value_of_meta_key_promotion_active', 10, 1);
+    $loader->add_action('save_post_promotions', $meta_boxes, 'save_post_default_value_of_meta_key_promotion_active', 25, 1);
   }
 
   public function run()

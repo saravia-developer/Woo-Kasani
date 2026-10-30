@@ -12,6 +12,10 @@ class Frontend
       'fields' => 'ids'
     ]);
 
+    if (empty($exists)) {
+      return $stop;
+    }
+
     $spin_meta = get_post_meta(
       $exists[0],
       'wlwl_spin_times',
@@ -20,38 +24,59 @@ class Frontend
 
     $key = 'wk_new_user_' . md5(strtolower($email));
 
-    if ((int) $spin_meta['spin_num'] !== 1) {
+    if ((int) $spin_meta['spin_num'] === 1) {
+
       set_transient(
         $key,
         true,
         MINUTE_IN_SECONDS
       );
-      return $stop;
+
+      $index = array_search(30, $wheel['coupon_amount']);
+
+      return $index;
     }
 
-    $index = array_search(30, $wheel['coupon_amount']);
     delete_transient($key);
 
-    return $index;
+    return $stop;
+
   }
 
-  public function update_response_win_lucky_wheel($data, $email)
+  public function update_response_win_lucky_wheel($data, $email, $name, $mobile, $wheel_label)
   {
     $key = 'wk_new_user_' . md5(strtolower($email));
+    $is_new_player = (bool) get_transient($key);
 
-    if((bool) get_transient($key)) {
+    if (!$is_new_player) {
       return $data;
     }
 
     $message = get_option('message_to_roulette_winners', '');
     $color_actual = get_option('mi_color_guardado', '#0073aa');
 
-    $data['is_new_user'] = [ 
-      'message' => $message,
-      'color' => $color_actual
+    $prepare_message = str_replace( '{{wheel_label}}', $wheel_label, $message);
+    $prepare_message = str_replace( '{{email}}', $email, $prepare_message);
+
+    $data['is_new_user'] = [
+      'message' => $prepare_message,
+      'color' => $color_actual,
+      'is_new_player' => $is_new_player
     ];
 
     delete_transient($key);
+
+    // file_put_contents(
+    //   WP_CONTENT_DIR . '/debug-wk.log',
+    //   print_r([
+    //     'data' => $data,
+    //     'email' => $email,
+    //     'name' => $name,
+    //     'mobile' => $mobile,
+    //     'wheel_label' => $wheel_label
+    //   ], true) . PHP_EOL,
+    //   FILE_APPEND
+    // );
 
     return $data;
   }
@@ -73,10 +98,4 @@ class Frontend
     </style>
     <?php
   }
-
-  public function mi_producto_es_oferta_flash($on_sale, $product)
-  {
-
-  }
-
 }

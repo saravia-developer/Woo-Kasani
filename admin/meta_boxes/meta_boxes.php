@@ -112,8 +112,8 @@ class MetaBoxes
     $this->promotions_duration->display_error_flash_sale();
   }
 
-  public function add_flash_warning_and_timer()
-  {
-    $this->promotions_duration->add_flash_warning_and_timer();
-  }
+  // public function add_flash_warning_and_timer()
+  // {
+  //   $this->promotions_duration->add_flash_warning_and_timer();
+  // }
 }

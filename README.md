@@ -30,12 +30,24 @@ en la línea 285 del archivo woocommerce-lucky-wheel.js tienes que ingresar el p
   function spins_wheel(stop_position, result_notification, result, is_new_user = null)
 ```
 
-en la línea 370 del archivo woocommerce-lucky-wheel.js tienes que ingresar lo siguiente:
+en la línea 371 del archivo woocommerce-lucky-wheel.js tienes que ingresar lo siguiente:
 
 ```
 if(is_new_user) {
     let container = $('.wlwl_lucky_wheel_content');
     container.addClass('success');
-    $('.wheel-content-wrapper .wheel_content_right .wlwl_user_lucky > .wlwl-frontend-result').html(is_new_user?.message).fadeIn(300);
+    $('.wheel-content-wrapper .wheel_content_right').html('<div class="wlwl-frontend-result">' + is_new_user?.message +'</div>').fadeIn(300);
 }
+```
+
+Es necesario que este código se pegue debajo del siguiente:
+
+```
+$('.wlwl_user_lucky').html('<div class="wlwl-frontend-result">' + result_notification + '</div>').fadeIn(300);
+```
+
+Y para culminar tenemos que actualizar la línea 1591 del archivo frontend.php en el que ya veniamos trabajando previamente, dando un parametro extra al filtro 'woo_lucky_wheel_get_email_response'. path: frontend/frontend.php;
+
+```
+apply_filters( 'woo_lucky_wheel_get_email_response', $data, $email, $name, $mobile, $wheel_label);
 ```
